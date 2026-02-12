@@ -1,0 +1,57 @@
+version: '3.3'
+
+services:
+  evolution_api:
+    image: atendai/evolution-api:latest
+    container_name: evolution_api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # Configurações de Segurança
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=sua_api_key_segura_aqui
+      
+      # Persistência de Dados (Local)
+      - DATABASE_ENABLED=true
+      - DATABASE_CONNECTION_URI=mongodb://mongodb:27017/evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      
+      # Redis para performance de cache
+      - CACHE_REDIS_ENABLED=true
+      - CACHE_REDIS_URI=redis://redis:6379
+      - CACHE_REDIS_PREFIX=EVO
+      
+      # Webhook Global (Opcional - pode ser configurado por instância)
+      - WEBHOOK_GLOBAL_ENABLED=false
+      
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - evolution_net
+
+  mongodb:
+    image: mongo:latest
+    container_name: evolution_mongodb
+    restart: always
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - evolution_net
+
+  redis:
+    image: redis:alpine
+    container_name: evolution_redis
+    restart: always
+    networks:
+      - evolution_net
+
+volumes:
+  mongo_data:
+
+networks:
+  evolution_net:
+    driver: bridge
+
