@@ -8,7 +8,6 @@ from fastapi import FastAPI, Request, HTTPException
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-import openai
 
 load_dotenv()
 
