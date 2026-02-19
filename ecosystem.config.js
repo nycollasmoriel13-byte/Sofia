@@ -1,3 +1,22 @@
+module.exports = {
+  apps : [{
+    name: 'sofia-bot',
+    script: 'app.py',
+    interpreter: '/root/sofia/.venv/bin/python',
+    cwd: '/root/sofia',
+    env: {
+      NODE_ENV: 'production',
+    },
+    // Espera 5 segundos antes de reiniciar se falhar (evita loop infinito)
+    restart_delay: 5000,
+    // Não reinicia se o uso de memória for muito alto (evita travar o servidor)
+    max_memory_restart: '800M',
+    // Mescla os logs para facilitar a leitura
+    combine_logs: true,
+    error_file: '/root/sofia/logs/err.log',
+    out_file: '/root/sofia/logs/out.log',
+  }]
+};
 
 module.exports = {
   apps: [
