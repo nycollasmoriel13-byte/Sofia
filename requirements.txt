@@ -6,3 +6,5 @@ stripe>=5.0.0
 python-telegram-bot>=20.0
 streamlit>=1.20.0
 pandas>=2.0.0
+google-genai
+google-generativeai
