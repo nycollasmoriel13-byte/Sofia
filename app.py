@@ -1,98 +1,125 @@
 import os
 import logging
+import os
+import sqlite3
+import stripe
 import asyncio
+from fastapi import FastAPI, Request
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
-from telegram import Update, constants
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+from telegram import Update
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+import openai
 
 load_dotenv()
-GOOGLE_API_KEY = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
-TELEGRAM_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN') or os.getenv('TELEGRAM_TOKEN')
 
-client = None
-if GOOGLE_API_KEY:
+# --- CONFIGURAÇÕES ---
+STRIPE_API_KEY = os.getenv("STRIPE_SECRET_KEY")
+stripe.api_key = STRIPE_API_KEY
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai.api_key = OPENAI_API_KEY
+DB_NAME = "agencia_autovenda.db"
+
+# Preços do .env
+PRICES = {
+    "Atendimento Flash": os.getenv("STRIPE_PRICE_ATENDIMENTO"),
+    "Secretária Virtual": os.getenv("STRIPE_PRICE_SECRETARIA"),
+    "Ecossistema Completo": os.getenv("STRIPE_PRICE_ECO")
+}
+
+app = FastAPI()
+
+# --- BANCO DE DADOS ---
+def save_message(user_id, role, content, name="Cliente"):
+    conn = sqlite3.connect(DB_NAME)
+    c = conn.cursor()
+    c.execute("INSERT OR IGNORE INTO assinaturas (user_id, nome, whatsapp_id, status) VALUES (?, ?, ?, ?)", 
+              (user_id, name, str(user_id), 'lead'))
+    c.execute("INSERT INTO historico (user_id, role, content) VALUES (?, ?, ?)", (user_id, role, content))
+    conn.commit()
+    conn.close()
+
+# --- LÓGICA DE PAGAMENTO ---
+def create_checkout(user_id, plan_name):
+    price_id = PRICES.get(plan_name)
+    if not price_id:
+        return None
     try:
-        client = genai.Client(api_key=GOOGLE_API_KEY)
-        logger.info('Google GenAI client inicializado')
-    except Exception as e:
-        logger.error(f'Erro inicializando client google-genai: {e}')
-else:
-    logger.error('GEMINI/GOOGLE API KEY não encontrada nas variáveis de ambiente')
-
-# Use nomes simples conforme a nova SDK
-MODEL_NAME = 'gemini-1.5-flash'
-FALLBACK_MODEL = 'gemini-1.5-pro'
-
-SYSTEM_INSTRUCTION = (
-    "Você é a Sofia, uma assistente virtual inteligente, amigável e prestativa. "
-    "Responda de forma concisa, educada e use emojis ocasionalmente para ser empática."
-)
-
-async def get_gemini_response(prompt: str):
-    if not client:
-        return "Erro: cliente de IA não configurado."
-
-    def call_generate(model: str, contents: str):
-        return client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                system_instruction=SYSTEM_INSTRUCTION,
-                max_output_tokens=1000,
-                temperature=0.7
-            )
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{'price': price_id, 'quantity': 1}],
+            mode='subscription',
+            success_url=os.getenv("SUCCESS_URL"),
+            cancel_url=os.getenv("CANCEL_URL"),
+            client_reference_id=str(user_id)
         )
+        return session.url
+    except Exception as e:
+        print(f"Erro Stripe: {e}")
+        return None
+
+# --- BOT TELEGRAM ---
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+telegram_app = Application.builder().token(TOKEN).build()
+
+async def start(update: Update, context):
+    user = update.effective_user
+    save_message(user.id, "system", "Início de conversa", user.first_name)
+    welcome_text = (
+        f"Olá {user.first_name}! 🤖 Eu sou a Sofia, consultora da Auto-Venda.\n\n"
+        "Ajudo empresas a automatizarem o atendimento e vendas. Nossos planos são:\n"
+        "1. Atendimento Flash (R$ 159,99)\n"
+        "2. Secretária Virtual (R$ 559,99)\n"
+        "3. Ecossistema Completo (R$ 1.499,99)\n\n"
+        "Como posso ajudar o seu negócio hoje?"
+    )
+    await update.message.reply_text(welcome_text)
+
+async def handle_message(update: Update, context):
+    user = update.effective_user
+    text = update.message.text
+    save_message(user.id, "user", text, user.first_name)
 
     try:
-        response = await asyncio.to_thread(call_generate, MODEL_NAME, prompt)
-        return getattr(response, 'text', None)
+        response = openai.ChatCompletion.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "Você é Sofia, vendedora da agência Auto-Venda. Seja profissional e persuasiva. Se o cliente escolher um plano, diga que vai gerar o link."},
+                {"role": "user", "content": text}
+            ]
+        )
+        reply = response.choices[0].message.content
+
+        if "Flash" in reply or "Secretária" in reply or "Ecossistema" in reply:
+            plano = "Atendimento Flash" if "Flash" in reply else "Secretária Virtual" if "Secretária" in reply else "Ecossistema Completo"
+            link = create_checkout(user.id, plano)
+            if link:
+                reply += f"\n\n🚀 *Aqui está seu link para assinar o {plano}:*\n{link}"
+
+        await update.message.reply_text(reply, parse_mode="Markdown")
+        save_message(user.id, "assistant", reply)
+
     except Exception as e:
-        logger.warning(f"Erro com modelo {MODEL_NAME}: {e}")
-        try:
-            response = await asyncio.to_thread(call_generate, FALLBACK_MODEL, prompt)
-            return getattr(response, 'text', None)
-        except Exception as e2:
-            logger.error(f"Erro fatal em todos os modelos: {e2}")
-            return "Desculpe, estou passando por instabilidades. Tente novamente mais tarde."
+        await update.message.reply_text("Estou pensando muito... pode repetir?")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Olá! Eu sou a Sofia V2.6. Como posso te ajudar hoje?")
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message or not update.message.text:
-        return
+@app.on_event("startup")
+async def startup_event():
+    import asyncio as _asyncio
+    _asyncio.create_task(telegram_app.initialize())
+    _asyncio.create_task(telegram_app.start())
+    _asyncio.create_task(telegram_app.updater.start_polling())
 
-    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=constants.ChatAction.TYPING)
-    user_text = update.message.text
-    reply = await get_gemini_response(user_text)
-    await update.message.reply_text(reply)
+@app.post("/webhook/stripe")
+async def stripe_webhook(request: Request):
+    data = await request.json()
+    if data.get('type') == 'checkout.session.completed':
+        session = data['data']['object']
+        user_id = session.get('client_reference_id')
+        print(f"Pagamento confirmado para: {user_id}")
+    return {"status": "success"}
 
-def main():
-    logger.info(">>> INICIANDO SOFIA V2.6 (GOOGLE-GENAI SDK) <<<")
-
-    # Diagnostic: list models available
-    if client:
-        try:
-            logger.info('Modelos disponíveis:')
-            for m in client.models.list():
-                logger.info(f' - {m.name}')
-        except Exception as e:
-            logger.error(f'Não foi possível listar modelos: {e}')
-
-    app = Application.builder().token(TELEGRAM_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-
-    logger.info('Iniciando polling...')
-    app.run_polling()
-
-if __name__ == '__main__':
-    main()
+@app.get("/")
+def read_root():
+    return {"status": "Sofia Online", "ip": os.getenv("VPS_IP", "Check .env")} 
