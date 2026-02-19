@@ -30,96 +30,97 @@ app = FastAPI()
 
 # --- BANCO DE DADOS ---
 def save_message(user_id, role, content, name="Cliente"):
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-    c.execute("INSERT OR IGNORE INTO assinaturas (user_id, nome, whatsapp_id, status) VALUES (?, ?, ?, ?)", 
-              (user_id, name, str(user_id), 'lead'))
-    c.execute("INSERT INTO historico (user_id, role, content) VALUES (?, ?, ?)", (user_id, role, content))
-    conn.commit()
-    conn.close()
+    import os
+    import logging
+    import asyncio
+    import sqlite3
+    import google.generativeai as genai
+    from dotenv import load_dotenv
+    from telegram import Update
+    from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+    from fastapi import FastAPI, Request
 
-# --- LÓGICA DE PAGAMENTO ---
-def create_checkout(user_id, plan_name):
-    price_id = PRICES.get(plan_name)
-    if not price_id:
-        return None
-    try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{'price': price_id, 'quantity': 1}],
-            mode='subscription',
-            success_url=os.getenv("SUCCESS_URL"),
-            cancel_url=os.getenv("CANCEL_URL"),
-            client_reference_id=str(user_id)
-        )
-        return session.url
-    except Exception as e:
-        print(f"Erro Stripe: {e}")
-        return None
-
-# --- BOT TELEGRAM ---
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-telegram_app = Application.builder().token(TOKEN).build()
-
-async def start(update: Update, context):
-    user = update.effective_user
-    save_message(user.id, "system", "Início de conversa", user.first_name)
-    welcome_text = (
-        f"Olá {user.first_name}! 🤖 Eu sou a Sofia, consultora da Auto-Venda.\n\n"
-        "Ajudo empresas a automatizarem o atendimento e vendas. Nossos planos são:\n"
-        "1. Atendimento Flash (R$ 159,99)\n"
-        "2. Secretária Virtual (R$ 559,99)\n"
-        "3. Ecossistema Completo (R$ 1.499,99)\n\n"
-        "Como posso ajudar o seu negócio hoje?"
+    # 1. Configuração de Logs
+    logging.basicConfig(
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        level=logging.INFO
     )
-    await update.message.reply_text(welcome_text)
+    logger = logging.getLogger(__name__)
 
-async def handle_message(update: Update, context):
-    user = update.effective_user
-    text = update.message.text
-    save_message(user.id, "user", text, user.first_name)
+    load_dotenv()
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+    TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    DB_NAME = "agencia_autovenda.db"
 
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "Você é Sofia, vendedora da agência Auto-Venda. Seja profissional e persuasiva. Se o cliente escolher um plano, diga que vai gerar o link."},
-                {"role": "user", "content": text}
-            ]
+    if not GEMINI_API_KEY:
+        logger.error("❌ Erro: GEMINI_API_KEY não encontrada no .env")
+    else:
+        genai.configure(api_key=GEMINI_API_KEY)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+
+    app = FastAPI()
+
+
+    async def get_gemini_response(user_input: str) -> str:
+        try:
+            prompt = (
+                f"Você é a Sofia, uma consultora de automação profissional da Agência Auto-Venda. "
+                f"Seja prestativa e educada. Pergunta do cliente: {user_input}"
+            )
+            response = model.generate_content(prompt)
+            # Algumas versões retornam um objeto com 'text', outras usam 'candidates'
+            if hasattr(response, 'text'):
+                return response.text
+            if hasattr(response, 'candidates') and len(response.candidates) > 0:
+                return response.candidates[0].content
+            return str(response)
+        except Exception as e:
+            logger.exception(f"Erro ao chamar Gemini: {e}")
+            return "Desculpe, tive um soluço técnico aqui no meu cérebro de IA. Pode repetir?"
+
+
+    async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user = update.effective_user
+        welcome_text = (
+            "Olá! Eu sou a Sofia, sua assistente da Auto-Venda. 🚀\n\n"
+            "Estou aqui para ajudar você a automatizar seu negócio. Como posso ajudar hoje?"
         )
-        reply = response.choices[0].message.content
+        await update.message.reply_text(welcome_text)
 
-        if "Flash" in reply or "Secretária" in reply or "Ecossistema" in reply:
-            plano = "Atendimento Flash" if "Flash" in reply else "Secretária Virtual" if "Secretária" in reply else "Ecossistema Completo"
-            link = create_checkout(user.id, plano)
-            if link:
-                reply += f"\n\n🚀 *Aqui está seu link para assinar o {plano}:*\n{link}"
 
-        await update.message.reply_text(reply, parse_mode="Markdown")
-        save_message(user.id, "assistant", reply)
+    async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_text = update.message.text
+        try:
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+        except Exception:
+            # Não crítico — apenas tenta mostrar typing
+            pass
 
-    except Exception as e:
-        await update.message.reply_text("Estou pensando muito... pode repetir?")
+        response_text = await get_gemini_response(user_text)
+        await update.message.reply_text(response_text)
 
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-@app.on_event("startup")
-async def startup_event():
-    import asyncio as _asyncio
-    _asyncio.create_task(telegram_app.initialize())
-    _asyncio.create_task(telegram_app.start())
-    _asyncio.create_task(telegram_app.updater.start_polling())
+    telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
 
-@app.post("/webhook/stripe")
-async def stripe_webhook(request: Request):
-    data = await request.json()
-    if data.get('type') == 'checkout.session.completed':
-        session = data['data']['object']
-        user_id = session.get('client_reference_id')
-        print(f"Pagamento confirmado para: {user_id}")
-    return {"status": "success"}
 
-@app.get("/")
-def read_root():
-    return {"status": "Sofia Online", "ip": os.getenv("VPS_IP", "Check .env")} 
+    @app.on_event("startup")
+    async def startup_event():
+        logger.info("🤖 Iniciando polling do Telegram...")
+        asyncio.create_task(telegram_app.initialize())
+        asyncio.create_task(telegram_app.start())
+        asyncio.create_task(telegram_app.run_polling())
+
+
+    @app.get("/")
+    async def root():
+        return {"status": "Sofia está online!", "provider": "Google Gemini"}
+
+
+    @app.post("/webhook/stripe")
+    async def stripe_webhook(request: Request):
+        payload = await request.json()
+        # Lógica de confirmação de pagamento aqui
+        logger.info("Stripe webhook recebido: %s", payload.get('type'))
+        return {"status": "success"}

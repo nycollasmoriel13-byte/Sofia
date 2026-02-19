@@ -95,4 +95,3 @@ streamlit run dashboard.py
 - Se quiser um `README.md` completo com passo-a-passo de deploy (Heroku/DigitalOcean), eu posso gerar em seguida.
 - `SUCCESS_URL=https://t.me/AssistenteVirtualSofia_bot?start=sucesso`
 
-
