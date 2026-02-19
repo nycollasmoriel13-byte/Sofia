@@ -1,189 +1,129 @@
 import os
 import logging
 import asyncio
+import warnings
+import google.generativeai as generativeai
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from telegram import Update
 from telegram.constants import ChatAction
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
+# Silencia avisos de depreciação/forward incompatíveis nos logs
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 # Configuração de Logs
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
+    level=logging.INFO
+)
 logger = logging.getLogger(__name__)
 
+# Carregar variáveis de ambiente
 load_dotenv()
 
 TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 
-# Importação da biblioteca Google GenAI
-try:
-    from google import genai
-    client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
-    logger.info("IA Gemini configurada.")
-except Exception as e:
-    client = None
-    logger.error(f"Erro IA: {e}")
+# Configuração do Cliente Gemini (biblioteca clássica google-generativeai)
+client = None
+if GEMINI_KEY:
+    try:
+        generativeai.configure(api_key=GEMINI_KEY)
+        client = generativeai
+        logger.info("IA Gemini: google-generativeai configurada com sucesso.")
+    except Exception as e:
+        logger.error(f"Erro ao configurar google-generativeai: {e}")
+else:
+    logger.warning("GEMINI_API_KEY não encontrada. O bot não responderá a mensagens.")
 
-# --- LOGICA DO TELEGRAM ---
+
 async def start(update: Update, context):
-    await update.message.reply_text('Olá! Sou a Sofia. Estou online e pronta para ajudar!')
+    """Responde ao comando /start"""
+    await update.message.reply_text('Olá! Sou a Sofia, a sua assistente da Agência Auto-Venda. Como posso ajudar?')
+
 
 async def handle_message(update: Update, context):
-    if not update.message or not update.message.text:
-        return
+    """Processa mensagens utilizando google-generativeai (síncrono via thread)"""
+    user_text = update.message.text
+    chat_id = update.effective_chat.id
+    
     try:
-        await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-        loop = asyncio.get_event_loop()
-        # Chamada para o Gemini
+        await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+        
         if not client:
-            await update.message.reply_text("IA não configurada no servidor.")
+            await update.message.reply_text("Erro: IA não configurada no servidor.")
             return
-        response = await loop.run_in_executor(None, lambda: client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=f"Você é a Sofia da Agência Auto-Venda. Responda: {update.message.text}"
-        ))
-        text = getattr(response, 'text', None) or str(response)
-        await update.message.reply_text(text if text else "Sem resposta da IA.")
+
+        # Prompt de personalidade
+        prompt_sys = "Tu és a Sofia, uma assistente virtual profissional da Agência Auto-Venda. Responde de forma simpática e prestativa em Português."
+        full_prompt = f"{prompt_sys}\n\nCliente: {user_text}"
+
+        # Chamada síncrona executada em thread para não bloquear o loop
+        resp = await asyncio.to_thread(lambda: client.generate_text(model='gemini-1.5-flash', prompt=full_prompt))
+
+        # Extrair texto de diferentes formatos de resposta
+        text_out = None
+        if isinstance(resp, dict):
+            text_out = resp.get('content') or (resp.get('candidates') and resp['candidates'][0].get('content'))
+            if not text_out and 'output' in resp:
+                try:
+                    text_out = resp['output'][0]['content']
+                except Exception:
+                    text_out = None
+        else:
+            text_out = getattr(resp, 'text', None) or str(resp)
+
+        if text_out:
+            await update.message.reply_text(text_out)
+        else:
+            await update.message.reply_text("A IA não retornou texto. Tente reformular a pergunta.")
+            
     except Exception as e:
-        logger.exception('Erro ao processar mensagem: %s', e)
-        await update.message.reply_text("Tive um problema técnico. Tente novamente.")
+        logger.error(f'ERRO CRÍTICO NA CONSULTA IA: {str(e)}', exc_info=True)
+        await update.message.reply_text('Tive um problema técnico ao processar sua resposta. Por favor, tente novamente em instantes.')
 
-# --- INICIALIZAÇÃO CONTROLADA ---
-app = FastAPI()
 
-@app.on_event("startup")
-async def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gere o ciclo de vida do bot e da API"""
     if not TOKEN:
-        logger.error("TELEGRAM_BOT_TOKEN AUSENTE!")
+        logger.error("TELEGRAM_BOT_TOKEN ausente!")
+        yield
         return
 
-    global telegram_app
-    try:
-        telegram_app = Application.builder().token(TOKEN).build()
-        telegram_app.add_handler(CommandHandler('start', start))
-        telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    telegram_app = Application.builder().token(TOKEN).build()
+    telegram_app.add_handler(CommandHandler('start', start))
+    telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    await telegram_app.initialize()
+    await telegram_app.start()
+    
+    polling_task = asyncio.create_task(telegram_app.updater.start_polling(drop_pending_updates=True))
+    logger.info(">>> SOFIA ONLINE (CLÁSSICO) <<<")
+    
+    yield
+    
+    await telegram_app.updater.stop()
+    await telegram_app.stop()
+    await telegram_app.shutdown()
+    polling_task.cancel()
 
-        await telegram_app.initialize()
-        await telegram_app.start()
 
-        # Iniciar polling em background sem travar o Uvicorn
-        asyncio.create_task(telegram_app.updater.start_polling(drop_pending_updates=True))
-
-        logger.info(">>> SOFIA OPERACIONAL <<<")
-    except Exception as e:
-        logger.exception('FALHA NO BOOT: %s', e)
+app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/")
-def read_root():
-    return {"status": "online", "bot": "Sofia"}
+@app.get('/')
+def health_check():
+    return {
+        "status": "active", 
+        "engine": "google-generativeai (classic)",
+        "gemini_ready": client is not None
+    }
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-import os
-import uvicorn
-if __name__ == "__main__":
-    # Default port changed from 5000 to 8000 for Sofia
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=False)
-
-import os
-import logging
-import asyncio
-import threading
-try:
-    # Prefer the new google.genai client when available
-    import google.genai as genai
-    import os
-    import logging
-    import asyncio
-    from fastapi import FastAPI
-    from dotenv import load_dotenv
-    from telegram import Update
-    from telegram.constants import ChatAction
-    from telegram.ext import Application, CommandHandler, MessageHandler, filters
-
-    # Configuração de Logs
-    logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
-    logger = logging.getLogger(__name__)
-
-    load_dotenv()
-
-    TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-    GEMINI_KEY = os.getenv('GEMINI_API_KEY')
-
-    # Importação da biblioteca Google GenAI
-    try:
-        from google import genai
-        client = genai.Client(api_key=GEMINI_KEY) if GEMINI_KEY else None
-        logger.info("IA Gemini configurada.")
-    except Exception as e:
-        client = None
-        logger.error(f"Erro IA: {e}")
-
-    # --- LOGICA DO TELEGRAM ---
-    async def start(update: Update, context):
-        await update.message.reply_text('Olá! Sou a Sofia. Estou online e pronta para ajudar!')
-
-    async def handle_message(update: Update, context):
-        if not update.message or not update.message.text: return
-        try:
-            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action=ChatAction.TYPING)
-            loop = asyncio.get_event_loop()
-            # Chamada para o Gemini
-            response = await loop.run_in_executor(None, lambda: client.models.generate_content(
-                model="gemini-1.5-flash", 
-                contents=f"Você é a Sofia da Agência Auto-Venda. Responda: {update.message.text}"
-            ))
-            await update.message.reply_text(response.text if response.text else "Sem resposta da IA.")
-        except Exception as e:
-            logger.error(f'Erro: {e}')
-            await update.message.reply_text("Tive um problema técnico. Tente novamente.")
-
-    # --- INICIALIZAÇÃO CONTROLADA ---
-    app = FastAPI()
-
-    @app.on_event("startup")
-    async def startup_event():
-        if not TOKEN:
-            logger.error("TELEGRAM_BOT_TOKEN AUSENTE!")
-            return
-
-        global telegram_app
-        try:
-            # Build da aplicação
-            telegram_app = Application.builder().token(TOKEN).build()
-        
-            # Handlers
-            telegram_app.add_handler(CommandHandler('start', start))
-            telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-        
-            # Sequência síncrona de boot
-            await telegram_app.initialize()
-            await telegram_app.start()
-        
-            # Iniciar polling em background sem travar o Uvicorn
-            asyncio.create_task(telegram_app.updater.start_polling(drop_pending_updates=True))
-        
-            logger.info(">>> SOFIA OPERACIONAL <<<")
-        except Exception as e:
-            logger.error(f"FALHA NO BOOT: {e}")
-
-    @app.get("/")
-    def read_root():
-        return {"status": "online", "bot": "Sofia"}
-
-    if __name__ == "__main__":
-        import uvicorn
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-        "gemini_ready": GEMINI_KEY is not None
-    }
-
-if __name__ == "__main__":
-    # Default port changed from 5000 to 8000 for Sofia
-    import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)
