@@ -1,4 +1,4 @@
-# Guia de Inicialização - Sofia V1.0
+﻿# Guia de Inicialização - Sofia V1.0
 
 Siga estes passos para colocar sua Agência de Automação online agora.
 
@@ -94,4 +94,5 @@ streamlit run dashboard.py
 - Não compartilhe seu `.env` publicamente.
 - Se quiser um `README.md` completo com passo-a-passo de deploy (Heroku/DigitalOcean), eu posso gerar em seguida.
 - `SUCCESS_URL=https://t.me/AssistenteVirtualSofia_bot?start=sucesso`
+
 
