@@ -1,0 +1,26 @@
+{
+  "name": "proposals",
+  "title": "Propostas e Conversão",
+  "description": "Gera instruções de pagamento e confirmações para os planos comerciais (Flash, Secretária Virtual, Ecossistema).",
+  "version": "1.0.0",
+  "triggers": [
+    "quero contratar",
+    "fechar",
+    "contratar",
+    "plano",
+    "preço",
+    "valor",
+    "assinatura",
+    "comprar",
+    "link de pagamento"
+  ],
+  "priority": 10
+}
+{
+  "name": "proposals",
+  "title": "Proposal Generator",
+  "description": "Gera propostas comerciais padronizadas a partir de dados do cliente.",
+  "version": "0.1",
+  "triggers": ["proposta", "gerar proposta", "enviar proposta", "proposta comercial"],
+  "confidence_threshold": 0.2
+}

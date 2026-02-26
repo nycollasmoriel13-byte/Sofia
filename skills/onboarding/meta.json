@@ -1,0 +1,12 @@
+{
+  "name": "onboarding",
+  "version": "1.0.0",
+  "triggers": [
+    "já paguei",
+    "paguei",
+    "comprovante",
+    "como começo",
+    "instalação"
+  ],
+  "priority": 2
+}

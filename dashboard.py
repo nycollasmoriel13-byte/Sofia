@@ -8,8 +8,8 @@ import os
 # Configuração da Página
 st.set_page_config(page_title="Sofia Dashboard", layout="wide")
 
-# Caminho absoluto para evitar confusão de pastas no servidor
-DB_PATH = "/root/sofia/agencia_autovenda.db"
+# Caminho para o DB: permite override por env var, fallback para arquivo local
+DB_PATH = os.getenv('DB_NAME', os.getenv('DB_PATH', 'agencia_autovenda.db'))
 
 def get_data(query):
     try:
@@ -21,6 +21,11 @@ def get_data(query):
         return df
     except Exception as e:
         return pd.DataFrame()
+
+
+def load_data(query):
+    """Compatibilidade: wrapper usado pelo frontend para carregar DataFrames."""
+    return get_data(query)
 
 # Título Único e Limpo (Removendo a duplicação vista no print)
 st.title("🚀 Sofia — Painel de Gestão Auto-Venda")
@@ -71,6 +76,57 @@ if not df_leads.empty:
     st.dataframe(df_leads[cols].fillna("-"), use_container_width=True)
 else:
     st.warning("Nenhum lead registrado.")
+
+# --- ABAS (Tabs) ---
+st.markdown("---")
+tab1, tab2 = st.tabs(["Análise/Leads", "Visão Geral"])
+
+with tab1:  # Na aba de Análise/Leads
+    st.subheader("📋 Dados de Onboarding (Implementação)")
+    df_onboarding = load_data("SELECT * FROM onboarding_data ORDER BY created_at DESC")
+    if not df_onboarding.empty:
+        # Mostrar resumo e progresso por cliente
+        st.markdown("**Resumo de progresso**")
+        # calcular preenchimento: whatsapp_contato, website_cliente, objetivos_ia
+        def progress_row(r):
+            fields = ['whatsapp_contato', 'website_cliente', 'objetivos_ia']
+            filled = sum(1 for f in fields if f in r and r[f] and str(r[f]).strip())
+            return int((filled / len(fields)) * 100)
+
+        df_onboarding_display = df_onboarding.copy()
+        # garantir colunas existam
+        for c in ['whatsapp_contato', 'website_cliente', 'objetivos_ia', 'status_configuracao', 'data_coleta']:
+            if c not in df_onboarding_display.columns:
+                df_onboarding_display[c] = None
+
+        df_onboarding_display['progress_percent'] = df_onboarding_display.apply(progress_row, axis=1)
+
+        # Mostrar contagem por status
+        status_counts = df_onboarding_display['status_configuracao'].fillna('pendente').value_counts()
+        st.write(status_counts.to_frame('count'))
+
+        # Mostrar lista com progress bar por cliente
+        for _, row in df_onboarding_display.iterrows():
+            with st.expander(f"{row.get('user_id', 'unknown')} — {row.get('status_configuracao','pendente')} (Última: {row.get('data_coleta','-')})"):
+                st.write(f"**Progresso:** {row['progress_percent']}%")
+                st.progress(row['progress_percent'])
+                st.write("**WhatsApp:**", row.get('whatsapp_contato', '-'))
+                st.write("**Website:**", row.get('website_cliente', '-'))
+                st.write("**Objetivos (resumo):**", row.get('objetivos_ia', '-'))
+                st.write("---")
+        # tabela completa abaixo
+        st.dataframe(df_onboarding_display.sort_values('data_coleta', ascending=False).fillna('-'), use_container_width=True)
+    else:
+        st.info("Nenhum dado de onboarding coletado ainda.")
+
+with tab2:
+    st.subheader("🛠️ Dados de Onboarding Coletados")
+    df_onb = get_data("SELECT * FROM onboarding_data ORDER BY created_at DESC")
+    if not df_onb.empty:
+        display_cols = [c for c in ['user_id', 'whatsapp', 'topics', 'website', 'created_at'] if c in df_onb.columns]
+        st.dataframe(df_onb[display_cols].fillna("-"), use_container_width=True)
+    else:
+        st.info("Nenhum dado de onboarding coletado ainda.")
 
 # --- VISUALIZADOR DE CHAT ---
 st.subheader("💬 Últimas Conversas")

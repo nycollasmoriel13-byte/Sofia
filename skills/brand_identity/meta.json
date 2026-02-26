@@ -1,0 +1,16 @@
+{
+  "name": "brand_identity",
+  "title": "Brand Identity - Defesa de Marca",
+  "description": "Garante que a Sofia mantenha a persona, corrige confusões sobre 'Auto' e enfatiza diferenciais frente à concorrência.",
+  "version": "1.0.0",
+  "triggers": ["sofia", "auto", "marca", "concorrência", "concorrente", "agência", "competidor"],
+  "priority": 5
+}
+{
+  "name": "brand_identity",
+  "title": "Brand Identity - Auto-Venda",
+  "description": "Guidelines, tone and canonical answers so Sofia speaks with brand consistency.",
+  "version": "0.1",
+  "triggers": ["marca", "identidade", "tom", "voz", "carro", "vender", "preço", "planos"],
+  "confidence_threshold": 0.2
+}

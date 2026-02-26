@@ -1,99 +1,52 @@
 import sqlite3
 import os
 import sys
-from datetime import datetime
-from dotenv import load_dotenv
 
-load_dotenv()
-
-# Allow overriding the DB name via .env
-DB_NAME = os.getenv("DB_NAME", "agencia_autovenda.db")
-
-
-def remove_server_artifacts():
-    """Remove ficheiros de configuração de servidor locais se existirem (não perigoso).
-    Esta função apenas remove ficheiros conhecidos que podem ter sido deixados por deploys
-    (ex.: arquivos de exemplo nginx). É segura: verifica existência antes de apagar.
-    """
-    candidates = [
-        os.path.join('deploy', 'nginx', 'sofia'),
-        'sofia.pid',
-    ]
-    for path in candidates:
-        if os.path.exists(path):
-            try:
-                if os.path.isdir(path):
-                    # don't recursively delete directories here
-                    print(f"Nota: diretório de deploy encontrado (não removido): {path}")
-                else:
-                    os.remove(path)
-                    print(f"✅ Artefacto de servidor removido: {path}")
-            except Exception as e:
-                print(f"Aviso: não foi possível remover {path}: {e}")
-
+# Nome do arquivo de banco de dados local
+DB_NAME = "agencia_autovenda.db"
 
 def setup():
-    clean_server = '--clean-server' in sys.argv
-
-    if "--yes" not in sys.argv:
-        confirm = input("Isso apagará todos os dados do banco atual. Continuar? (s/n): ")
-        if confirm.lower() != 's':
-            return
-
-    if os.path.exists(DB_NAME):
-        os.remove(DB_NAME)
-        print(f"✅ Banco antigo {DB_NAME} removido.")
-
-    if clean_server:
-        remove_server_artifacts()
-
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-
-    # Ativar chaves estrangeiras e configurações recomendadas
-    cursor.execute('PRAGMA foreign_keys = ON;')
-    cursor.execute('PRAGMA journal_mode = WAL;')
-
-    # Tabela de Assinaturas/Leads
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS assinaturas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT UNIQUE,
-            nome TEXT,
-            whatsapp_id TEXT,
-            plano TEXT,
-            status TEXT DEFAULT 'lead',
-            valor_mensal REAL,
-            data_inicio TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Tabela de Histórico de Mensagens
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS historico (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id TEXT,
-            role TEXT,
-            content TEXT,
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-
-    # Índices úteis
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_historico_user ON historico(user_id);')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_assinaturas_user ON assinaturas(user_id);')
-
-    conn.commit()
-
-    # VACUUM para otimizar o ficheiro novo
+    """
+    Prepara o ambiente de banco de dados local para a Sofia.
+    Atualiza para gemini-1.5-flash-latest para evitar o erro 404 da v1beta.
+    """
+    print(f"🔧 Iniciando configuração do banco de dados local: {DB_NAME}")
+    
     try:
-        cursor.execute('VACUUM;')
-    except Exception:
-        pass
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
 
-    conn.close()
-    print(f"🚀 Banco de dados '{DB_NAME}' configurado com sucesso para o ambiente local em {datetime.now().isoformat()}.")
+        # 1. Limpeza de tabelas
+        cursor.execute("DROP TABLE IF EXISTS assinaturas")
+        cursor.execute("DROP TABLE IF EXISTS historico")
+        cursor.execute("DROP TABLE IF EXISTS configuracoes")
 
+        # 2. Criação das tabelas
+        cursor.execute('''CREATE TABLE assinaturas (user_id TEXT PRIMARY KEY, nome TEXT, plano TEXT, status TEXT DEFAULT 'lead', valor_mensal REAL, data_inicio TEXT)''')
+        cursor.execute('''CREATE TABLE historico (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, role TEXT, content TEXT, timestamp TEXT)''')
+        cursor.execute('''CREATE TABLE configuracoes (chave TEXT PRIMARY KEY, valor TEXT)''')
+        
+        # Gravação do modelo escolhido: gemini-3-flash
+        # Troque para 'models/gemini-3-flash' se a sua SDK/API exigir o prefixo 'models/'
+        cursor.execute("INSERT INTO configuracoes (chave, valor) VALUES (?, ?)", 
+                   ("gemini_model", "gemini-3-flash"))
+
+        system_prompt = (
+            "Você é a Sofia, IA da agência 'Auto-Venda'. "
+            "Você vende automação de vendas (chatbots), NÃO vende carros. "
+            "Planos: Atendimento Flash (R$ 159,99), Secretária Virtual (R$ 559,99), Ecossistema Completo (R$ 1.499,99)."
+        )
+        
+        cursor.execute("INSERT INTO configuracoes (chave, valor) VALUES (?, ?)", 
+                       ("system_prompt", system_prompt))
+
+        conn.commit()
+        conn.close()
+        print("✅ Banco de dados atualizado!")
+        print("🚀 Modelo definido como: gemini-3-flash")
+        
+    except Exception as e:
+        print(f"❌ Erro: {e}")
 
 if __name__ == "__main__":
     setup()
