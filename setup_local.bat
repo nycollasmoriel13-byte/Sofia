@@ -14,7 +14,7 @@ python -m pip install --upgrade pip
 
 :: 3. Instalar dependencias corrigidas
 echo [3/4] Instalando bibliotecas (isso pode demorar um pouco)...
-pip install stripe python-telegram-bot==21.10 openai fastapi uvicorn python-dotenv pandas streamlit httpx numpy<2.0.0 google-generativeai google-genai
+pip install stripe python-telegram-bot==21.10 openai fastapi uvicorn python-dotenv pandas streamlit httpx "numpy>=2.0.0" google-generativeai google-genai
 
 :: 4. Inicializar Banco de Dados Local
 echo [4/4] Configurando banco de dados SQLite local...
