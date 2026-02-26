@@ -28,11 +28,12 @@ TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 
 # Configuração do Cliente Gemini (biblioteca clássica google-generativeai)
-client = None
+model = None
 if GEMINI_KEY:
     try:
         generativeai.configure(api_key=GEMINI_KEY)
-        client = generativeai
+        # Use GenerativeModel API (generate_content)
+        model = generativeai.GenerativeModel('gemini-1.5-flash')
         logger.info("IA Gemini: google-generativeai configurada com sucesso.")
     except Exception as e:
         logger.error(f"Erro ao configurar google-generativeai: {e}")
@@ -53,7 +54,7 @@ async def handle_message(update: Update, context):
     try:
         await context.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
         
-        if not client:
+        if not model:
             await update.message.reply_text("Erro: IA não configurada no servidor.")
             return
 
@@ -62,7 +63,7 @@ async def handle_message(update: Update, context):
         full_prompt = f"{prompt_sys}\n\nCliente: {user_text}"
 
         # Chamada síncrona executada em thread para não bloquear o loop
-        resp = await asyncio.to_thread(lambda: client.generate_text(model='gemini-1.5-flash', prompt=full_prompt))
+        resp = await asyncio.to_thread(lambda: model.generate_content(full_prompt))
 
         # Extrair texto de diferentes formatos de resposta
         text_out = None
@@ -78,8 +79,8 @@ async def handle_message(update: Update, context):
 
         if text_out:
             await update.message.reply_text(text_out)
-        else:
-            await update.message.reply_text("A IA não retornou texto. Tente reformular a pergunta.")
+            else:
+                await update.message.reply_text("A IA não retornou texto. Tente reformular a pergunta.")
             
     except Exception as e:
         logger.error(f'ERRO CRÍTICO NA CONSULTA IA: {str(e)}', exc_info=True)
@@ -97,18 +98,22 @@ async def lifespan(app: FastAPI):
     telegram_app = Application.builder().token(TOKEN).build()
     telegram_app.add_handler(CommandHandler('start', start))
     telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
+
     await telegram_app.initialize()
     await telegram_app.start()
-    
-    polling_task = asyncio.create_task(telegram_app.updater.start_polling(drop_pending_updates=True))
-    logger.info(">>> SOFIA ONLINE (CLÁSSICO) <<<")
-    
+
+    # run_polling is the modern, supported method for v20+ and returns when stopped
+    polling_task = asyncio.create_task(telegram_app.run_polling())
+    logger.info(">>> SOFIA ONLINE <<<")
+
     yield
-    
-    await telegram_app.updater.stop()
-    await telegram_app.stop()
-    await telegram_app.shutdown()
+
+    # Shutdown sequence
+    try:
+        await telegram_app.stop()
+        await telegram_app.shutdown()
+    except Exception:
+        pass
     polling_task.cancel()
 
 
