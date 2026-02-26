@@ -43,108 +43,63 @@ git ls-files --error-unmatch .env 2>$null || Write-Output ".env not tracked"
 
 ## 4) Testar o fluxo local (webhook)
 
-1. Ative o `venv`:
+Plano Mestre Atualizado
+26 de fev., 20:47
+
+Com este guia atualizado e o `setup_db.py` sincronizado, o projeto está oficialmente fechado e pronto para o deploy.
+
+Projeto: Agência de Automação "Auto-Venda" (Consolidado)
+
+Objetivo: Vender soluções de automação via atendimento 100% automatizado, com gestão administrativa centralizada.
+
+🛠️ Stack Tecnológica (Final)
+
+Linguagem: Python 3.10+
+
+Cérebro: Google Gemini 1.5 Flash
+
+Canal: Telegram (Bot API)
+
+Pagamentos: Stripe (Checkout Sessions + Webhooks)
+
+Banco de Dados: SQLite (agencia_autovenda.db)
+
+🛡️ Protocolo de Segurança e Produção (Crítico)
+
+Para garantir que o sistema funcione corretamente tanto em teste como em produção, segue a regra de ouro para o ficheiro .env:
+
+Variável DEV_SKIP_STRIPE_SIG
+
+Esta variável controla a verificação de assinatura dos Webhooks do Stripe.
+
+Ambiente de Desenvolvimento (Local):
+
+Defina DEV_SKIP_STRIPE_SIG=1.
+
+Porquê: Permite testar pagamentos usando scripts como o test_stripe.py sem precisar de HTTPS/SSL.
+
+Ambiente de Produção (DigitalOcean/VPS):
+
+Defina DEV_SKIP_STRIPE_SIG=0 (ou remova a linha).
+
+Porquê: Garante que apenas o Stripe pode confirmar pagamentos, evitando ataques de falsificação.
+
+💾 Manutenção da Base de Dados
+
+Sempre que precisar de um início limpo (reset), utilize o script de setup:
 
 ```powershell
-.venv\Scripts\Activate.ps1
+python setup_db.py
 ```
 
-2. Inicie o `app.py` (em background opcional):
+Atenção: Isto apagará todos os leads e assinaturas existentes.
 
-```powershell
-# opcional: parar processos antigos
-$procs = Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine -match 'app.py' }
-if ($procs) { $procs | ForEach-Object { Stop-Process -Id $_.ProcessId -Force } }
+📈 Fluxo de Trabalho Diário
 
-# iniciar em background
-Start-Process -FilePath .venv\Scripts\python.exe -ArgumentList 'app.py' -NoNewWindow
-Start-Sleep -Seconds 2
-```
+Verificar Logs: pm2 logs sofia-bot
 
-3. Execute o script de teste (o script cria o lead e dispara o webhook):
+Atualizar Código: git pull origin main -> pm2 restart sofia-bot
 
-```powershell
-# defina a URL se necessário
-$env:WEBHOOK_STRIPE_URL='http://localhost:8000/webhook/stripe'
-python tools/test_onboarding_flow.py
-```
+Monitorizar Leads: Aceder ao Dashboard via http://teu-ip/dashboard
 
-Esperado: resposta HTTP `200` e o registo em `assinaturas` com `status = 'ativo'`.
-
-## 5) Verificar no banco de dados
-
-Comando rápido para checar o status do user test:
-
-```powershell
-python -c "import sqlite3; conn=sqlite3.connect('agencia_autovenda.db'); print(conn.execute('SELECT user_id,status FROM assinaturas WHERE user_id=?', ('123456789',)).fetchone()); conn.close()"
-```
-
-## 6) Commit / Push final
-
-1. Commit das alterações de código (não inclua `.env`):
-
-```powershell
-git add .
-git commit -m "chore: limpeza de ambiente, ignore de sensíveis e correção de webhook"
-```
-
-2. Publicar no remoto:
-
-```powershell
-git push origin main
-```
-
-## 7) Boas práticas para produção
-
-- Nunca defina `DEV_SKIP_STRIPE_SIG=1` em produção.
-- Configure `STRIPE_WEBHOOK_SECRET` no ambiente do servidor (DigitalOcean, Heroku, etc.).
-- Considere usar `ENV=production|development` para controlar comportamento no `app.py`.
-
-## 8) Troubleshooting
-
-- Se receber `{'status':'invalid'}` verifique nos logs do `app.py` a razão (`missing_client_reference_id`, `user_not_found` ou `db_error`).
-- Se o webhook não chegar, confirme a URL e a porta onde o Flask está a correr (`WEBHOOK_PORT`/`WEBHOOK_HOST`).
-
----
-
-Se preferires, eu faço o `git push` por ti depois do commit. Caso prefiras, executa `git push origin main` localmente.
-# Auto-Venda — Cérebro (FastAPI)
-
-Rápido esqueleto para receber webhooks da Evolution API e responder usando
-Gemini (Google Generative AI).
-
-Como executar (ambiente Windows):
-
-1. Crie um virtualenv e ative:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-1. Instale dependências:
-
-```powershell
-pip install -r requirements.txt
-```
-
-1. Configure variáveis de ambiente (opcionais):
-
-```powershell
-$env:EVOLUTION_API_URL = 'http://localhost:8080'
-$env:EVOLUTION_API_KEY = 'sua_api_key_aqui'
-$env:EVOLUTION_INSTANCE = 'sua_instancia'
-$env:GEMINI_API_KEY = 'sua_gemini_key'
-```
-
-1. Rode localmente:
-
-```powershell
-python app.py
-```
-
-Pontos importantes:
-
-- Ajuste `EVOLUTION_INSTANCE` para o nome da sua instância na Evolution API.
-- Para desenvolvimento, use chaves de teste apropriadas e atente para quotas
-  da API.
+Sofia V1.0 - Pronta para Escalar.
