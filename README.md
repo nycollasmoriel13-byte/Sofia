@@ -100,6 +100,6 @@ Verificar Logs: pm2 logs sofia-bot
 
 Atualizar Código: git pull origin main -> pm2 restart sofia-bot
 
-Monitorizar Leads: Aceder ao Dashboard via http://teu-ip/dashboard
+Monitorizar Leads: Aceder ao Dashboard: [http://teu-ip/dashboard](http://teu-ip/dashboard)
 
 Sofia V1.0 - Pronta para Escalar.
