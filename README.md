@@ -11,7 +11,7 @@ Este documento descreve os passos finais para limpar o repositório, testar loca
 
 Para permitir testes locais sem verificação de assinatura do Stripe, adicione ao seu `.env` local (NUNCA commit):
 
-```
+```bash
 DEV_SKIP_STRIPE_SIG=1
 ```
 
@@ -28,7 +28,7 @@ Em produção, remova ou defina para `0`.
 
 - Confirme que `.gitignore` contém:
 
-```
+```text
 __pycache__/
 *.db
 .env
