@@ -1,0 +1,1 @@
+{"name": "consulta_estoque", "title": "Consulta de Estoque", "description": "Verifica disponibilidade de produtos em estoque.", "triggers": ["tem", "disponível", "estoque", "em falta", "quando chega", "repõe"], "prompt_instruction": "Informe disponibilidade de produtos. Para itens em falta, avise sobre reposição."}

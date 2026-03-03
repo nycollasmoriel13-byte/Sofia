@@ -1,0 +1,1 @@
+{"name": "info_cursos", "title": "Informações sobre Cursos", "description": "Apresenta cursos disponíveis, carga horária, valores e modalidades.", "triggers": ["curso", "aula", "treinamento", "capacitação", "aprendo", "tem vagas"], "prompt_instruction": "Apresente cursos de forma consultiva: pergunte objetivo antes de listar. Destaque diferencial pedagógico."}

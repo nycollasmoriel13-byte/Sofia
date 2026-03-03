@@ -1,0 +1,1 @@
+{"name": "agendamento_consultoria", "title": "Agendamento de Consultoria", "description": "Agenda sessões de consultoria ou reuniões de diagnóstico.", "triggers": ["reunião", "conversar", "consultoria", "diagnóstico", "call", "bate-papo"], "prompt_instruction": "Agende consultoria: nome, empresa/área, objetivo da reunião, data/horário, modalidade."}

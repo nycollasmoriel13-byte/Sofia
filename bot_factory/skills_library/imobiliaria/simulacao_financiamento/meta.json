@@ -1,0 +1,1 @@
+{"name": "simulacao_financiamento", "title": "Simulação de Financiamento", "description": "Faz simulação básica de financiamento imobiliário.", "triggers": ["parcela", "simulação", "quantas parcelas", "juros", "financiar", "como fica"], "prompt_instruction": "Faça simulação simplificada de financiamento com base em valor do imóvel, entrada e prazo."}

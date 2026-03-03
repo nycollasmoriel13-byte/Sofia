@@ -1,0 +1,1 @@
+{"name": "fidelidade_pontos", "title": "Programa de Fidelidade", "description": "Gerencia programa de pontos e benefícios para clientes recorrentes.", "triggers": ["pontos", "fidelidade", "programa", "meus pontos", "resgate", "cliente fiel"], "prompt_instruction": "Informe saldo de pontos, como acumular e como resgatar benefícios."}

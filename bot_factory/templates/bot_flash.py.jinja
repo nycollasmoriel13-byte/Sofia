@@ -1,0 +1,169 @@
+"""
+Bot gerado automaticamente pelo Bot Factory — Sofia Auto-Venda.
+Plano: FLASH | Empresa: {{ empresa_nome }}
+Gerado em: {{ "now" }}
+NÃO EDITE MANUALMENTE — use o painel para reconfigurar.
+"""
+import os, sys, logging, asyncio, sqlite3
+from datetime import datetime
+from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from groq import Groq
+from telegram import Update
+from telegram.constants import ChatAction
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+
+# ── Configuração ────────────────────────────────────────────
+logging.basicConfig(
+    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+    level=logging.INFO,
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("{{ user_id | replace('-','_') }}_bot")
+
+BOT_TOKEN   = "{{ telegram_token }}"
+GROQ_KEY    = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL  = "{{ groq_model }}"
+DB_PATH     = r"{{ db_path }}"
+USER_ID     = "{{ user_id }}"
+EMPRESA     = "{{ empresa_nome }}"
+MAX_HISTORY = 15
+
+SYSTEM_PROMPT = """{{ system_prompt }}"""
+
+# ── Groq Client ──────────────────────────────────────────────
+groq_client = None
+if GROQ_KEY:
+    try:
+        groq_client = Groq(api_key=GROQ_KEY)
+    except Exception as e:
+        logger.error(f"Erro Groq: {e}")
+
+# ── Histórico em memória ─────────────────────────────────────
+history: dict = defaultdict(list)
+
+
+def _save_msg(from_id: str, role: str, content: str):
+    """Salva mensagem no banco principal para o dashboard."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO historico (user_id, role, content, timestamp) VALUES (?,?,?,?)",
+            (f"{USER_ID}::{from_id}", role, content, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.warning(f"DB save error: {e}")
+
+
+def _log_escalation(from_id: str, msg: str):
+    """Registra evento de escalação no learning engine."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO feedback_bots (bot_user_id, tipo, conteudo, data) VALUES (?,?,?,?)",
+            (USER_ID, "escalacao", msg[:500], datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+ESCALATION_PHRASES = [
+    "falar com humano", "falar com atendente", "falar com pessoa",
+    "atendente humano", "quero falar com", "humano por favor",
+]
+
+
+async def start(update: Update, ctx):
+    history[str(update.effective_user.id)].clear()
+    await update.message.reply_text(
+        f"Olá! 👋 Bem-vindo ao atendimento de *{EMPRESA}*!\n\n"
+        f"Estou aqui para ajudar. Como posso te atender hoje? 😊",
+        parse_mode="Markdown"
+    )
+
+
+async def handle(update: Update, ctx):
+    text    = update.message.text or ""
+    from_id = str(update.effective_user.id)
+    chat_id = update.effective_chat.id
+
+    await ctx.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    _save_msg(from_id, "user", text)
+
+    # Detecção de escalação
+    if any(p in text.lower() for p in ESCALATION_PHRASES):
+        _log_escalation(from_id, text)
+        reply = (
+            "Claro! Vou te conectar com nossa equipe agora. "
+            "{% if transbordo_contato %}Contato direto: {{ transbordo_contato }}{% endif %} 😊"
+        )
+        await update.message.reply_text(reply)
+        _save_msg(from_id, "assistant", reply)
+        return
+
+    if not groq_client:
+        await update.message.reply_text("Sistema temporariamente indisponível. Tente em instantes!")
+        return
+
+    hist = history[from_id][-MAX_HISTORY:]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(hist)
+    messages.append({"role": "user", "content": text})
+
+    try:
+        def _call():
+            return groq_client.chat.completions.create(
+                model=GROQ_MODEL, messages=messages, temperature=0.65, max_tokens=800
+            )
+        resp    = await asyncio.to_thread(_call)
+        reply   = resp.choices[0].message.content.strip()
+
+        history[from_id].append({"role": "user",      "content": text})
+        history[from_id].append({"role": "assistant",  "content": reply})
+        _save_msg(from_id, "assistant", reply)
+        await update.message.reply_text(reply)
+
+    except Exception as e:
+        logger.error(f"Groq error: {e}")
+        await update.message.reply_text(
+            "Tive um probleminha técnico. Tente novamente em instantes! 🙏"
+        )
+
+
+async def main():
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN não configurado!")
+        return
+    app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    logger.info(f"🤖 Bot de {EMPRESA} iniciado (Flash)")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+    logger.info("Bot rodando... Pressione Ctrl+C para parar")
+    # Mantém o bot rodando
+    import signal
+    stop = asyncio.Event()
+    try:
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, lambda *_: stop.set())
+    except (ValueError, AttributeError):
+        pass  # Windows pode não suportar todos os sinais
+    await stop.wait()
+    await app.updater.stop()
+    await app.stop()
+    await app.shutdown()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

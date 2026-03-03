@@ -1,0 +1,1 @@
+{"name": "briefing_projeto", "title": "Briefing de Projeto", "description": "Coleta informações completas para início de um projeto de serviço.", "triggers": ["projeto", "preciso de", "contratar", "quero fazer", "sobre o que você faz"], "prompt_instruction": "Conduza briefing profissional: objetivo, prazo, orçamento, público-alvo, referências."}

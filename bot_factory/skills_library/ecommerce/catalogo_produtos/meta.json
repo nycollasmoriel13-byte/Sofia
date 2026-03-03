@@ -1,0 +1,1 @@
+{"name": "catalogo_produtos", "title": "Catálogo de Produtos", "description": "Apresenta produtos com características e preços.", "triggers": ["produto", "catálogo", "tem", "vende", "modelo", "cor", "tamanho"], "prompt_instruction": "Apresente produtos de forma consultiva. Pergunte o uso/necessidade antes de sugerir."}

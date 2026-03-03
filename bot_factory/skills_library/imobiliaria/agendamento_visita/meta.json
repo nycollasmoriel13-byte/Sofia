@@ -1,0 +1,1 @@
+{"name": "agendamento_visita", "title": "Agendamento de Visita", "description": "Agenda visitas a imóveis com corretor.", "triggers": ["visitar", "ver o imóvel", "agendar visita", "quero ver", "como visito"], "prompt_instruction": "Agende visitas coletando: imóvel de interesse, data/hora disponível, nome e contato do interessado."}

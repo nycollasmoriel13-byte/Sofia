@@ -1,0 +1,6 @@
+Para consulta de estoque em varejo:
+Informe disponibilidade do produto com clareza.
+Se disponível: quantidade e localização (se loja física, informe o corredor/seção).
+Se esgotado: "Esse produto está temporariamente em falta. Posso te avisar quando chegar — quer deixar seu contato?"
+Se data de reposição conhecida: informe e sugira reserva antecipada.
+Para produto similar: "Não temos esse, mas temos X que é equivalente e está em promoção!"

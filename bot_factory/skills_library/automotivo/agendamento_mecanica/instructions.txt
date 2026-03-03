@@ -1,0 +1,6 @@
+Para agendamento em mecânica/oficina:
+Colete: modelo e placa do veículo, serviço desejado, data e horário preferidos.
+Informe tempo médio de atendimento para o serviço solicitado.
+Oriente o cliente sobre o que trazer (documento do veículo, chave reserva se necessário).
+Se serviço demorado: "O veículo ficará conosco por aproximadamente X horas. Precisa de translado?"
+Confirme o agendamento com todos os dados ao final.

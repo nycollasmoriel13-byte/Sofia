@@ -1,0 +1,1 @@
+{"name": "promocoes", "title": "Promoções e Ofertas", "description": "Comunica promoções ativas, cupons e descontos.", "triggers": ["promoção", "desconto", "oferta", "cupom", "mais barato", "liquidação"], "prompt_instruction": "Apresente promoções vigentes com urgência e clareza. Facilite o aproveitamento imediato."}

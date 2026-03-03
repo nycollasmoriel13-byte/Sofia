@@ -1,0 +1,1 @@
+{"name": "rastreio_pedido", "title": "Rastreio de Pedido", "description": "Informa situação e localização de pedidos.", "triggers": ["meu pedido", "cadê", "rastrear", "entrega", "código", "enviou", "chegou"], "prompt_instruction": "Auxilie rastreamento. Colete número do pedido e informe status se disponível."}

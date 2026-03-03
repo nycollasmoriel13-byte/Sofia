@@ -1,0 +1,1 @@
+{"name": "lembretes_retorno", "title": "Lembretes de Retorno", "description": "Lembra pacientes de consultas de acompanhamento.", "triggers": ["lembrete", "retorno", "acompanhamento", "quando volto", "próxima consulta"], "prompt_instruction": "Informe sobre necessidade de retorno ou acompanhamento e facilite o reagendamento."}

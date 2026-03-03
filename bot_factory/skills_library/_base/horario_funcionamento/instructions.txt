@@ -1,0 +1,4 @@
+Informe claramente os horários de funcionamento quando questionado.
+Fora do horário comercial: "No momento estamos fora do horário de atendimento ({horario}). Sua mensagem foi registrada e retornaremos em breve!" 
+Se o cliente tem urgência fora do horário, ofereça o contato de transbordo se disponível.
+Nunca deixe o cliente sem resposta sobre disponibilidade.

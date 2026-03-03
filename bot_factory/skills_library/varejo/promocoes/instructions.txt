@@ -1,0 +1,7 @@
+Para promoções em varejo:
+Apresente promoções com destaque visual (use *negrito* e 🏷️ emojis).
+Informe: produto, desconto, preço original vs promoção, validade.
+Crie urgência real: "Essa oferta vai até domingo!" ou "Últimas X unidades!"
+Para cupons: informe o código e como aplicar.
+Para promoções por quantidade: "Leve 3 e pague 2 — aproveite!" 
+Finalize com CTA: "Quer que eu reserve esse item para você?"

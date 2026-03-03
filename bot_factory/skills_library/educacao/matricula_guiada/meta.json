@@ -1,0 +1,1 @@
+{"name": "matricula_guiada", "title": "Matrícula Guiada", "description": "Conduz o processo de matrícula passo a passo.", "triggers": ["matricular", "inscrever", "quero me inscrever", "como faço", "documentos"], "prompt_instruction": "Guie a matrícula: curso escolhido, documentos necessários, turma/horário, pagamento."}

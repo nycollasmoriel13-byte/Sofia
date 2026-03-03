@@ -1,0 +1,1 @@
+{"name": "agendamento_mecanica", "title": "Agendamento na Mecânica", "description": "Agenda revisões e serviços automotivos.", "triggers": ["agendar", "marcar", "trazer o carro", "revisão", "quando posso ir"], "prompt_instruction": "Agende serviços: veículo, serviço, data/hora. Confirme disponibilidade e informe o que trazer."}

@@ -1,0 +1,6 @@
+Para orçamento de serviços automotivos:
+Colete: marca e modelo do veículo, ano, quilometragem aproximada, serviço desejado.
+Para serviços simples (troca de óleo, filtros): informe estimativa de valor se cadastrada.
+Para serviços complexos (motor, câmbio): "Para esse tipo de serviço precisamos avaliar presencialmente. Posso agendar uma avaliação gratuita?"
+Sempre informe prazo estimado de execução.
+Mencione garantia do serviço se disponível.

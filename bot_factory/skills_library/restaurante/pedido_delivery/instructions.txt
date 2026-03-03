@@ -1,0 +1,8 @@
+Para pedidos de delivery:
+1. Confirme se é entrega ou retirada no local.
+2. Para entrega: colete endereço completo e confirme se está na área de entrega.
+3. Colete os itens e quantidades, confirmando cada um.
+4. Pergunte sobre personalizações (sem cebola, ponto da carne, etc.).
+5. Informe o valor total e tempo estimado de entrega.
+6. Pergunte forma de pagamento (dinheiro — troco para quanto? / pix / cartão).
+7. Confirme o pedido completo antes de finalizar.

@@ -1,0 +1,1 @@
+{"name": "pedido_delivery", "title": "Pedido Delivery", "description": "Facilita a realização de pedidos para entrega ou retirada.", "triggers": ["pedir", "delivery", "entrega", "quero pedir", "fazer pedido", "retirada"], "prompt_instruction": "Guie o cliente no pedido: itens, quantidade, endereço de entrega ou retirada, forma de pagamento."}

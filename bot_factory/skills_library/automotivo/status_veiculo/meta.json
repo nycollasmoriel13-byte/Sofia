@@ -1,0 +1,1 @@
+{"name": "status_veiculo", "title": "Status do Veículo", "description": "Informa situação dos serviços em andamento no veículo.", "triggers": ["meu carro", "como está", "pronto", "terminou", "quando fica pronto"], "prompt_instruction": "Consulte status do serviço por placa ou nome. Informe previsão de conclusão."}

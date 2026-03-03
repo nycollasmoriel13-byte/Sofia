@@ -1,0 +1,1 @@
+{"name": "historico_manutencao", "title": "Histórico de Manutenção", "description": "Registra e consulta histórico de serviços realizados no veículo.", "triggers": ["histórico", "última revisão", "quando troquei", "registro", "quando foi"], "prompt_instruction": "Consulte ou informe histórico de serviços do veículo identificado por placa."}

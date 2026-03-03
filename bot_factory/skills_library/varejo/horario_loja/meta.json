@@ -1,0 +1,1 @@
+{"name": "horario_loja", "title": "Horário da Loja", "description": "Informa horários de funcionamento e condições especiais.", "triggers": ["horário", "fecha", "abre", "domingo", "feriado", "funcionando"], "prompt_instruction": "Informe horários de abertura e fechamento. Destaque funcionamento em feriados e datas especiais."}

@@ -1,0 +1,6 @@
+Para rastreio de pedidos:
+Colete o número do pedido ou CPF do cliente.
+Se integrado a sistema: consulte e informe o status atual.
+Se não integrado: "Com seu número de pedido você pode rastrear em [transportadora/site]. Posso te ajudar com mais alguma coisa?"
+Para atrasos: "Vou verificar com nossa equipe de logística. Pode me dar seu nº de pedido e e-mail?"
+Mantenha tom empático — problemas de entrega geram ansiedade.

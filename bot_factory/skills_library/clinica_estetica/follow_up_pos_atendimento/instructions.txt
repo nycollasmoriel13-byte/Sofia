@@ -1,0 +1,5 @@
+Para follow-up pós-atendimento em clínica estética:
+Pergunte como o cliente está se sentindo após o procedimento.
+Se positivo: "Que ótimo! Para manter o resultado, recomendamos [dica de cuidado]. Quer já agendar a próxima sessão?"
+Se negativo: transfira imediatamente para humano — nunca tente resolver reclamações sobre procedimentos sozinho.
+Registre o feedback para histórico do cliente.

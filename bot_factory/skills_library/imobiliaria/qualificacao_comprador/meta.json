@@ -1,0 +1,1 @@
+{"name": "qualificacao_comprador", "title": "Qualificação de Comprador", "description": "Avalia perfil financeiro e interesse do comprador.", "triggers": ["financiamento", "posso financiar", "renda", "minha situação", "FGTS", "entrada"], "prompt_instruction": "Qualifique capacidade de compra de forma discreta: renda, entrada disponível, financiamento ou à vista, FGTS."}

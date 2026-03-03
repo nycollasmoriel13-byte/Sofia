@@ -1,0 +1,1 @@
+{"name": "followup_orcamento", "title": "Follow-up de Orçamento", "description": "Recontata leads que receberam orçamento mas não responderam.", "triggers": ["vi o orçamento", "sobre a proposta", "ainda pensando", "não vi"], "prompt_instruction": "Para leads com proposta enviada, identifique objeção e ofereça ajuda para decidir."}

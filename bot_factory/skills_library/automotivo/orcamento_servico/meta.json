@@ -1,0 +1,1 @@
+{"name": "orcamento_servico", "title": "Orçamento de Serviço Automotivo", "description": "Coleta dados do veículo e emite pré-orçamento de serviços.", "triggers": ["orçamento", "quanto custa", "preço", "serviço", "revisão", "troca", "conserto"], "prompt_instruction": "Colete: modelo do veículo, ano, serviço desejado. Forneça estimativa ou agende avaliação presencial."}

@@ -1,0 +1,1 @@
+{"name": "promocoes_diarias", "title": "Promoções Diárias", "description": "Comunica promoções e combos especiais do dia.", "triggers": ["promoção", "especial", "desconto", "combo", "oferta", "o que tem hoje"], "prompt_instruction": "Apresente promoções e combos vigentes. Crie urgência quando pertinente."}

@@ -1,0 +1,6 @@
+Para simulação de financiamento imobiliário:
+Deixe claro que é uma simulação estimada — o valor real depende da instituição financeira.
+Colete: valor do imóvel, valor de entrada, prazo desejado (em anos).
+Use referência: taxa média Caixa/CEF ~10-12% a.a. como estimativa.
+Para cálculo manual estimado: use a fórmula de amortização ou tabela Price simplificada.
+Sempre sugira: "Para uma simulação oficial e aprovação, podemos te encaminhar para um especialista em crédito imobiliário."

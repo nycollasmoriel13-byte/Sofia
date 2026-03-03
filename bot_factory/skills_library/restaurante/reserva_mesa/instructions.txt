@@ -1,0 +1,6 @@
+Para reservas de mesa em restaurante:
+Colete: data e horário, número de pessoas, nome para reserva.
+Pergunte se é alguma ocasião especial (aniversário, jantar romântico) — pode oferecer algo especial.
+Informe a política de espera para reservas (se o cliente não vier em X minutos, a mesa pode ser liberada).
+Confirme a reserva ao final com todos os dados.
+Para grupos grandes (a partir de 8 pessoas): sugira pré-cardápio ou cardápio executivo se disponível.

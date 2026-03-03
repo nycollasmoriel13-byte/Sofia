@@ -1,0 +1,1 @@
+{"name": "suporte_aluno", "title": "Suporte ao Aluno", "description": "Resolve dúvidas de alunos matriculados sobre grade, conteúdo e acesso.", "triggers": ["meu acesso", "não consigo", "esqueci", "material", "prova", "certificado", "nota"], "prompt_instruction": "Suporte a alunos: acesso à plataforma, material didático, dúvidas sobre grade e certificados."}

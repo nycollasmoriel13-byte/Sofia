@@ -1,25 +1,33 @@
-Skill: Onboarding — Implementação
+# Skill: Onboarding
 
-Objetivo:
-Coletar os dados técnicos necessários para a ativação e configuração final do serviço após confirmação do pagamento.
+## Objetivo
+Coletar todos os dados tecnicos necessarios para configurar o bot do cliente apos o pagamento, sem precisar de contato adicional.
 
-Quando ativar:
-- Somente após pagamento confirmado (status == 'ativo' na tabela `assinaturas`).
+## Plataformas Suportadas
+- **WhatsApp** (API Oficial Meta): requer Phone Number ID, Access Token e Webhook Verify Token. Taxa de uso da API paga pelo cliente diretamente a Meta (~R\$ 0,03-0,12/conversa).
+- **Telegram** (gratuito): requer Token do bot (@BotFather) e Username do bot. Zero taxa de API.
 
-Perguntas obrigatórias (sequência recomendada):
-1) "Qual o número de WhatsApp que vamos conectar?" (incluir código do país quando possível)
-2) "Pode descrever em 3 tópicos o que o bot deve responder obrigatoriamente?" (lista curta de requisitos)
-3) "Qual o link do seu site ou redes sociais para eu estudar o tom da sua empresa?"
+## Fluxo de Coleta
 
-Formato de saída esperado:
-- Resumo em texto que repita os três itens coletados e descreva próximos passos técnicos (ex.: cronograma de integração e necessidade de acesso a APIs ou painel).
+### Passo 1 — Plataforma (todos os planos)
+Pergunta qual plataforma o cliente escolheu. Determina as credenciais de API a coletar.
 
-Regras e notas:
-- Antes de perguntar, verifique o status de assinatura (o hook determinístico será responsável por isso).
-- Se algum campo estiver em falta, pedir apenas o campo em falta (perguntas objetivas e curtas).
-- Salvar os dados de onboarding no banco local (`onboarding_data` table criada automaticamente se necessário).
-- Sempre que coletar uma informação (como o site), confirme com o usuário e diga que está registrando no sistema de ativação.
+**WhatsApp:** meta_phone_number_id → meta_whatsapp_token → meta_webhook_verify_token
+**Telegram:** telegram_bot_token → telegram_bot_username
 
-Tom: Profissional, direto e claro. Use emoji de confirmação quando a coleta estiver completa.
+### Passo 2 — Dados da Empresa (todos os planos)
+empresa_nome, horario_funcionamento, tom_de_voz, transbordo_nome, transbordo_contato, site_ou_redes, servicos_produtos, faq_perguntas
 
----
+### Passo 3 — Secretaria Virtual (adicional)
+agenda_servicos, agenda_email_google, agenda_politica_cancel, agenda_max_dia, agenda_intervalo_min
+
+### Passo 4 — Ecossistema Completo (adicional ao Passo 3)
+crm_atual, equipe_estrutura, redes_integrar, metricas_dashboard, regras_escalacao
+
+## Retornos
+- `status: bloqueado` — pagamento nao confirmado
+- `status: em_progresso` — inclui `instruction` com proxima pergunta e progresso %
+- `status: completo` — inclui `dados` (dict completo), `resumo` e `instruction` de conclusao
+
+## Nota sobre taxa Meta
+Quando for coletar credenciais WhatsApp (meta_phone_number_id), a skill injeta automaticamente uma instrucao para Sofia explicar a taxa da API Meta de forma tranquilizadora antes de pedir as chaves.

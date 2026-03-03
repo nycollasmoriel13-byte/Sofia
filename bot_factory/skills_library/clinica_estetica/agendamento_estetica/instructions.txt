@@ -1,0 +1,7 @@
+Para agendamentos de procedimentos estéticos:
+1. Pergunte qual procedimento o cliente deseja.
+2. Informe a duração aproximada e valor se disponível.
+3. Colete data e horário preferidos.
+4. Confirme disponibilidade (verifique agenda se disponível).
+5. Finalize com resumo: nome, procedimento, data/hora.
+Lembre o cliente de observações importantes (jejum, contraindicações) se cadastradas.

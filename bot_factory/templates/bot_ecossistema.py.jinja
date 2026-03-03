@@ -1,0 +1,294 @@
+"""
+Bot gerado automaticamente pelo Bot Factory — Sofia Auto-Venda.
+Plano: ECOSSISTEMA COMPLETO | Empresa: {{ empresa_nome }}
+Gerado em: {{ "now" }}
+NÃO EDITE MANUALMENTE — use o painel para reconfigurar.
+"""
+import os, sys, logging, asyncio, sqlite3, json, re
+from datetime import datetime
+from collections import defaultdict
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from groq import Groq
+from telegram import Update
+from telegram.constants import ChatAction
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
+
+# ── Configuração ────────────────────────────────────────────
+logging.basicConfig(
+    format="%(asctime)s | %(name)s | %(levelname)s | %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger("{{ user_id | replace('-','_') }}_ecossistema")
+
+BOT_TOKEN  = "{{ telegram_token }}"
+GROQ_KEY   = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = "{{ groq_model }}"
+DB_PATH    = r"{{ db_path }}"
+USER_ID    = "{{ user_id }}"
+EMPRESA    = "{{ empresa_nome }}"
+MAX_HISTORY = 30  # Ecossistema tem memória mais longa
+
+SYSTEM_PROMPT = """{{ system_prompt }}"""
+
+# ── Groq Client ─────────────────────────────────────────────
+groq_client = None
+if GROQ_KEY:
+    try:
+        groq_client = Groq(api_key=GROQ_KEY)
+    except Exception as e:
+        logger.error(f"Erro Groq: {e}")
+
+# ── Histórico em memória (longo prazo via DB) ────────────────
+history: dict = defaultdict(list)
+sessions: dict = {}  # user_id → dados de sessão ativa
+
+ESCALATION_PHRASES = [
+    "falar com humano", "falar com atendente", "quero falar com pessoa",
+    "atendente humano", "preciso de um humano"
+]
+AGENDA_TRIGGERS = [
+    "agendar", "marcar", "quero um horário", "consulta", "sessão", "reservar"
+]
+CRM_INTEREST = [
+    "quero comprar", "tenho interesse", "quero contratar", "fechar", "assinar"
+]
+
+
+# ── DB helpers ───────────────────────────────────────────────
+def _setup_tables():
+    conn = sqlite3.connect(DB_PATH)
+    cur  = conn.cursor()
+    cur.executescript("""
+        CREATE TABLE IF NOT EXISTS agendamentos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bot_owner_id TEXT, cliente_id TEXT, nome_cliente TEXT,
+            servico TEXT, horario TEXT, status TEXT DEFAULT 'confirmado', criado_em TEXT
+        );
+        CREATE TABLE IF NOT EXISTS crm_leads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            bot_owner_id TEXT, cliente_id TEXT, nome TEXT, interesse TEXT,
+            estagio TEXT DEFAULT 'novo', ultima_interacao TEXT, criado_em TEXT
+        );
+    """)
+    conn.commit(); conn.close()
+
+
+def _save_msg(from_id: str, role: str, content: str):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO historico (user_id, role, content, timestamp) VALUES (?,?,?,?)",
+            (f"{USER_ID}::{from_id}", role, content, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
+        conn.commit(); conn.close()
+    except Exception as e:
+        logger.warning(f"DB error: {e}")
+
+
+def _load_history_from_db(from_id: str) -> list:
+    """Carrega histórico do DB para memória de longo prazo."""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur  = conn.cursor()
+        full_uid = f"{USER_ID}::{from_id}"
+        cur.execute(
+            "SELECT role, content FROM historico WHERE user_id=? ORDER BY timestamp DESC LIMIT 40",
+            (full_uid,)
+        )
+        rows = cur.fetchall()
+        conn.close()
+        return [{"role": r[0], "content": r[1]} for r in reversed(rows)]
+    except Exception:
+        return []
+
+
+def _upsert_crm_lead(from_id: str, nome: str = None, interesse: str = None, estagio: str = None):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur  = conn.cursor()
+        now  = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cur.execute("SELECT id FROM crm_leads WHERE bot_owner_id=? AND cliente_id=?", (USER_ID, from_id))
+        exists = cur.fetchone()
+        if exists:
+            fields, vals = [], []
+            for col, val in [("nome", nome), ("interesse", interesse), ("estagio", estagio), ("ultima_interacao", now)]:
+                if val:
+                    fields.append(f"{col}=?"); vals.append(val)
+            if fields:
+                vals.append(USER_ID); vals.append(from_id)
+                cur.execute(f"UPDATE crm_leads SET {', '.join(fields)} WHERE bot_owner_id=? AND cliente_id=?", vals)
+        else:
+            cur.execute(
+                "INSERT INTO crm_leads (bot_owner_id, cliente_id, nome, interesse, estagio, ultima_interacao, criado_em) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (USER_ID, from_id, nome or from_id, interesse or "", estagio or "novo", now, now)
+            )
+        conn.commit(); conn.close()
+    except Exception as e:
+        logger.error(f"CRM upsert error: {e}")
+
+
+def _log_escalation(from_id: str, msg: str):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO feedback_bots (bot_user_id, tipo, conteudo, data) VALUES (?,?,?,?)",
+            (USER_ID, "escalacao", msg[:500], datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
+        conn.commit(); conn.close()
+    except Exception:
+        pass
+
+
+# ── Handlers ─────────────────────────────────────────────────
+async def start(update: Update, ctx):
+    from_id = str(update.effective_user.id)
+    # Carrega histórico do banco para memória de longo prazo
+    history[from_id] = _load_history_from_db(from_id)
+    _upsert_crm_lead(from_id)
+    await update.message.reply_text(
+        f"Olá! 👋 Bem-vindo ao atendimento de *{EMPRESA}*!\n\n"
+        f"Estou aqui para te ajudar com qualquer dúvida, agendar serviços e muito mais. "
+        f"Como posso te atender? 😊",
+        parse_mode="Markdown"
+    )
+
+
+async def handle(update: Update, ctx):
+    text    = update.message.text or ""
+    from_id = str(update.effective_user.id)
+    chat_id = update.effective_chat.id
+
+    await ctx.bot.send_chat_action(chat_id=chat_id, action=ChatAction.TYPING)
+    _save_msg(from_id, "user", text)
+
+    # ── CRM: detecta interesse de compra ────────────────────
+    if any(p in text.lower() for p in CRM_INTEREST):
+        _upsert_crm_lead(from_id, interesse=text[:200], estagio="interesse")
+
+    # ── Escalação ────────────────────────────────────────────
+    if any(p in text.lower() for p in ESCALATION_PHRASES):
+        _log_escalation(from_id, text)
+        _upsert_crm_lead(from_id, estagio="escalado")
+        reply = (
+            "Claro! Vou te conectar com nossa equipe agora. "
+            "{% if transbordo_contato %}Contato direto: {{ transbordo_contato }}{% endif %} 😊"
+        )
+        await update.message.reply_text(reply)
+        _save_msg(from_id, "assistant", reply)
+        return
+
+    # ── Agendamento ──────────────────────────────────────────
+    if any(t in text.lower() for t in AGENDA_TRIGGERS) and not sessions.get(from_id):
+        sessions[from_id] = {"step": 0}
+        _upsert_crm_lead(from_id, estagio="agendamento")
+        reply = "Ótimo! Vamos marcar. Qual é o seu nome? 📝"
+        await update.message.reply_text(reply)
+        _save_msg(from_id, "assistant", reply)
+        return
+
+    if from_id in sessions:
+        sess = sessions[from_id]
+        step = sess.get("step", 0)
+        if step == 0:
+            sess["nome"] = text; sess["step"] = 1
+            reply = f"Obrigado, {text.split()[0]}! Qual serviço deseja agendar?"
+        elif step == 1:
+            sess["servico"] = text; sess["step"] = 2
+            reply = "Perfeito! Qual data e horário prefere? (ex: 15/03 às 14h)"
+        elif step == 2:
+            sess["horario"] = text; sess["step"] = 3
+            reply = (
+                f"📋 *Confirmação:*\n• {sess['nome']} | {sess['servico']} | {text}\n\n"
+                "Confirmar? (sim/não)"
+            )
+        elif step == 3:
+            if any(w in text.lower() for w in ["sim", "confirmo", "ok", "pode"]):
+                try:
+                    conn = sqlite3.connect(DB_PATH)
+                    cur  = conn.cursor()
+                    cur.execute("CREATE TABLE IF NOT EXISTS agendamentos (id INTEGER PRIMARY KEY AUTOINCREMENT, bot_owner_id TEXT, cliente_id TEXT, nome_cliente TEXT, servico TEXT, horario TEXT, status TEXT DEFAULT 'confirmado', criado_em TEXT)")
+                    cur.execute("INSERT INTO agendamentos (bot_owner_id, cliente_id, nome_cliente, servico, horario, criado_em) VALUES (?,?,?,?,?,?)",
+                                (USER_ID, from_id, sess["nome"], sess["servico"], sess["horario"], datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+                    conn.commit(); conn.close()
+                except Exception as e:
+                    logger.error(f"Agenda DB: {e}")
+                _upsert_crm_lead(from_id, estagio="agendado")
+                reply = f"✅ *Agendamento confirmado!* {sess['servico']} em {sess['horario']}. Até lá! 😊"
+            else:
+                reply = "Agendamento cancelado. Posso ajudar com mais alguma coisa? 😊"
+            sessions.pop(from_id, None)
+        else:
+            sessions.pop(from_id, None)
+            reply  = "Tudo certo! Como mais posso ajudar?"
+        await update.message.reply_text(reply, parse_mode="Markdown")
+        _save_msg(from_id, "assistant", reply)
+        return
+
+    # ── IA com memória longo prazo ────────────────────────────
+    if not groq_client:
+        await update.message.reply_text("Sistema temporariamente indisponível. Tente em instantes!")
+        return
+
+    # Para ecossistema: usa histórico do DB (longo prazo)
+    if not history[from_id]:
+        history[from_id] = _load_history_from_db(from_id)
+
+    hist = history[from_id][-MAX_HISTORY:]
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    messages.extend(hist)
+    messages.append({"role": "user", "content": text})
+
+    try:
+        def _call():
+            return groq_client.chat.completions.create(
+                model=GROQ_MODEL, messages=messages, temperature=0.65, max_tokens=1000
+            )
+        resp  = await asyncio.to_thread(_call)
+        reply = resp.choices[0].message.content.strip()
+        history[from_id].append({"role": "user",      "content": text})
+        history[from_id].append({"role": "assistant",  "content": reply})
+        _save_msg(from_id, "assistant", reply)
+        await update.message.reply_text(reply)
+
+        # Atualiza última interação no CRM
+        _upsert_crm_lead(from_id)
+
+    except Exception as e:
+        logger.error(f"Groq error: {e}")
+        await update.message.reply_text("Tive um probleminha técnico. Tente novamente em instantes! 🙏")
+
+
+async def main():
+    _setup_tables()
+    if not BOT_TOKEN:
+        logger.error("BOT_TOKEN não configurado!")
+        return
+    app = Application.builder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    logger.info(f"🤖 Ecossistema Completo de {EMPRESA} iniciado")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling(drop_pending_updates=True)
+    logger.info("Bot rodando... Pressione Ctrl+C para parar")
+    import signal
+    stop = asyncio.Event()
+    try:
+        for sig in (signal.SIGINT, signal.SIGTERM):
+            signal.signal(sig, lambda *_: stop.set())
+    except (ValueError, AttributeError):
+        pass
+    await stop.wait()
+    await app.updater.stop()
+    await app.stop()
+    await app.shutdown()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

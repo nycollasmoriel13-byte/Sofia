@@ -1,0 +1,6 @@
+Para recuperar carrinho/venda hesitante:
+Identifique a razão da hesitação com uma pergunta: "Ficou alguma dúvida? Posso te ajudar a decidir."
+Objeção de preço: ofereça parcelamento, desconto progressivo ou brinde se autorizado.
+Objeção de prazo: confirme prazo real de entrega e dê garantias.
+Crie urgência real: "Esse produto tem apenas X unidades em estoque" (apenas se verdadeiro).
+Ofereça facilidade: "Posso te enviar o link direto para o produto agora."

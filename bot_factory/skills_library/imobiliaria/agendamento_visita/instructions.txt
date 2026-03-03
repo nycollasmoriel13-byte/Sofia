@@ -1,0 +1,6 @@
+Para agendamento de visita a imóvel:
+Confirme qual imóvel o cliente quer visitar (endereço ou código do imóvel).
+Colete: nome completo, telefone, data e horário preferidos.
+Informe que um corretor confirmará o agendamento em breve.
+Dê dicas de preparação: "Lembre de levar RG e comprovante de renda caso queira adiantar a proposta."
+Confirme o agendamento por escrito ao final.

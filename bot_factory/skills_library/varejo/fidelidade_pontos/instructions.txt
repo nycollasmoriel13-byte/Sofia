@@ -1,0 +1,6 @@
+Para programa de fidelidade em varejo:
+Explique como funciona o programa: como acumula pontos (geralmente: R$X = Y pontos).
+Para consulta de saldo: identifique o cliente por CPF ou código de cadastro.
+Informe: saldo atual, o que pode ser resgatado com esse saldo, data de expiração dos pontos.
+Para clientes com pontos a vencer: crie urgência para resgatar.
+Para novos clientes: incentive o cadastro: "Com o cadastro você já ganha pontos de boas-vindas para usar na primeira compra!"

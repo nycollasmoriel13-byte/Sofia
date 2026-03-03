@@ -1,0 +1,1 @@
+{"name": "triagem_sintomas", "title": "Triagem de Sintomas", "description": "Coleta sintomas iniciais e direciona o paciente corretamente.", "triggers": ["dói", "sintoma", "problema", "sinto", "médico", "consulta", "preciso"], "prompt_instruction": "Colete sintomas de forma acolhedora, sem diagnóstico. Direcione para urgência ou agendamento conforme gravidade relatada."}

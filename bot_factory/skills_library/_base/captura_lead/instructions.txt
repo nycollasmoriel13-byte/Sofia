@@ -1,0 +1,5 @@
+Quando o cliente demonstrar interesse, colete os dados de forma natural e conversacional.
+Peça nome primeiro: "Para te ajudar melhor, pode me dizer seu nome?"
+Depois, o contato mais conveniente (WhatsApp ou e-mail).
+Confirme os dados antes de finalizar: "Perfeito! {nome}, vou anotar seu contato {contato}."
+Nunca force a coleta — se o cliente não quiser, respeite e continue ajudando.

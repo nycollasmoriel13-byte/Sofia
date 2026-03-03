@@ -1,0 +1,6 @@
+Para agendamento de consultas de saúde:
+Pergunte: especialidade ou nome do médico, primeira consulta ou retorno.
+Informe se aceita plano de saúde e quais planos (se cadastrado).
+Colete: nome completo, data de nascimento, data e horário preferidos.
+Se retorno: pergunte o nome do médico que acompanha o caso.
+Confirme tudo antes de finalizar e informe documentos necessários (RG, carteirinha do plano).

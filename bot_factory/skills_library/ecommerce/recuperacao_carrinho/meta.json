@@ -1,0 +1,1 @@
+{"name": "recuperacao_carrinho", "title": "Recuperação de Carrinho", "description": "Reengaja clientes que abandonaram o processo de compra.", "triggers": ["pensando", "vou ver", "deixa eu ver", "depois eu compro", "vou pensar"], "prompt_instruction": "Quando cliente hesitar, identifique a objeção e apresente argumento ou incentivo para finalizar."}

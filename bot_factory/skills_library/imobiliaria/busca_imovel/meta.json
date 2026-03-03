@@ -1,0 +1,1 @@
+{"name": "busca_imovel", "title": "Busca de Imóvel", "description": "Qualifica o cliente e filtra imóveis adequados ao perfil.", "triggers": ["imóvel", "apartamento", "casa", "comprar", "alugar", "procurando", "quarto"], "prompt_instruction": "Qualifique o cliente: compra ou aluguel, número de quartos, bairro, valor, objetivo. Filtre opções cadastradas."}

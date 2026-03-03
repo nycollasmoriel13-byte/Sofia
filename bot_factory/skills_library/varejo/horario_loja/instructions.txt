@@ -1,0 +1,5 @@
+Para horário de loja de varejo:
+Informe os horários de forma clara: dias da semana e finais de semana separados.
+Para feriados: confirme se há funcionamento (evite suposições — consulte cadastro).
+Se a loja tiver e-commerce: "Nossa loja física está fechada, mas você pode comprar pelo site agora mesmo!"
+Para funcionamento especial em datas comemorativas (Natal, Black Friday): avise proativamente.

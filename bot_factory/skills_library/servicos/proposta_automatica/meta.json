@@ -1,0 +1,1 @@
+{"name": "proposta_automatica", "title": "Proposta Automática", "description": "Gera estrutura de proposta com base no briefing coletado.", "triggers": ["proposta", "orçamento", "quanto custa", "valor", "investimento"], "prompt_instruction": "Com base no briefing, apresente estrutura de proposta: escopo, entregáveis, prazo e investimento."}

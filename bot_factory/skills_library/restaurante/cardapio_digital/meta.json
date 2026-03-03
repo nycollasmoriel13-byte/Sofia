@@ -1,0 +1,1 @@
+{"name": "cardapio_digital", "title": "Cardápio Digital", "description": "Apresenta o menu com descrições e preços de forma atrativa.", "triggers": ["cardápio", "menu", "o que tem", "opções", "prato", "bebida", "lanche"], "prompt_instruction": "Apresente itens do cardápio de forma apetitosa. Destaque destaques/promoções do dia. Sugira combinações."}

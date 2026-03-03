@@ -1,0 +1,1 @@
+{"name": "calendario_letivo", "title": "Calendário Letivo", "description": "Informa datas de aulas, provas, feriados e eventos acadêmicos.", "triggers": ["quando começa", "feriado", "calendário", "data", "próxima aula", "quando é"], "prompt_instruction": "Informe datas e eventos acadêmicos com precisão. Se não souber data específica, oriente a verificar no portal."}

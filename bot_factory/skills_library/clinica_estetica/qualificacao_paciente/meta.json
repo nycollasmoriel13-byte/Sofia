@@ -1,0 +1,1 @@
+{"name": "qualificacao_paciente", "title": "Qualificação de Paciente", "description": "Coleta informações prévias sobre o perfil e necessidades do paciente.", "triggers": ["primeira vez", "nunca fiz", "quero saber mais", "tenho interesse", "indicação"], "prompt_instruction": "Para novos pacientes, colete informações de saúde relevantes e expectativas de forma acolhedora."}

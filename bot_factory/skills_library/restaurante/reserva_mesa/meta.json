@@ -1,0 +1,1 @@
+{"name": "reserva_mesa", "title": "Reserva de Mesa", "description": "Gerencia reservas de mesas para clientes.", "triggers": ["reserva", "mesa", "lugar", "jantar", "almoçar", "para quantas pessoas"], "prompt_instruction": "Aceite reservas coletando: data, horário, número de pessoas, nome do responsável e se há ocasião especial."}

@@ -1,0 +1,5 @@
+Para lembretes e retornos em clínica de saúde:
+Quando o paciente perguntar sobre retorno, informe o prazo recomendado se cadastrado.
+Facilite o reagendamento: "Quer já marcar seu retorno enquanto estamos aqui?"
+Lembre de documentos: "Traga seus exames anteriores para a consulta."
+Para procedimentos com follow-up obrigatório, seja proativo: "Acompanhamento após esse procedimento é muito importante para sua recuperação."

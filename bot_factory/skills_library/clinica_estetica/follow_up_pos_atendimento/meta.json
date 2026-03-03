@@ -1,0 +1,1 @@
+{"name": "follow_up_pos_atendimento", "title": "Follow-up Pós-Atendimento", "description": "Verifica satisfação e incentiva retorno após procedimentos.", "triggers": ["como ficou", "resultado", "satisfeito", "gostou", "retorno", "próxima sessão"], "prompt_instruction": "Após procedimentos, verifique satisfação do cliente e sugira próxima sessão ou tratamento complementar."}

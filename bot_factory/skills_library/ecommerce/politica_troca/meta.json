@@ -1,0 +1,1 @@
+{"name": "politica_troca", "title": "Política de Trocas e Devoluções", "description": "Esclarece regras de troca, devolução e garantia.", "triggers": ["trocar", "devolver", "garantia", "defeito", "não gostei", "errei o tamanho"], "prompt_instruction": "Explique a política de trocas e devoluções de forma clara. Para casos complexos, transfira para humano."}

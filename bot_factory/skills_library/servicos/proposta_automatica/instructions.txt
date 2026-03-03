@@ -1,0 +1,8 @@
+Para geração de proposta automática:
+Com base no briefing coletado, apresente uma estrutura clara:
+- Escopo do trabalho (o que será entregue)
+- Entregáveis concretos
+- Prazo estimado
+- Investimento (com referência de valor se disponível no cadastro)
+Deixe claro que é uma proposta inicial sujeita à validação final.
+Finalize: "Posso encaminhar isso por e-mail para você ter formalmente? Qual seu endereço?"

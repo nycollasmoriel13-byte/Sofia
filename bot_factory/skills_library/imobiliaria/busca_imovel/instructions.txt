@@ -1,0 +1,6 @@
+Para busca de imóveis:
+Qualifique primeiro: compra ou aluguel? Quantos quartos? Bairro/região? Faixa de valor?
+Pergunte o objetivo: morar, investir, comercial?
+Elimine incompatíveis e apresente no máximo 3 opções iniciais.
+Para cada imóvel: destaque os principais atributos e benefícios da localização.
+Ofereça visita para avançar: "Que tal agendar uma visita para conhecer pessoalmente?"
