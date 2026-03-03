@@ -103,3 +103,45 @@ Atualizar Código: git pull origin main -> pm2 restart sofia-bot
 Monitorizar Leads: Aceder ao Dashboard: [http://teu-ip/dashboard](http://teu-ip/dashboard)
 
 Sofia V1.0 - Pronta para Escalar.
+
+## Testes locais: Bypass de verificação de assinatura do Stripe (apenas para DEV)
+
+AVISO: Use este bypass somente em ambientes de desenvolvimento locais. Nunca habilite em produção nem em servidores públicos.
+
+Quando estiver a desenvolver localmente e não quiser configurar HTTPS e o `STRIPE_WEBHOOK_SECRET`, pode usar uma variável de ambiente para desabilitar temporariamente a verificação de assinatura:
+
+PowerShell (sessão atual):
+
+```powershell
+$env:DEV_SKIP_STRIPE_SIG = "1"
+python app.py
+```
+
+CMD (Windows):
+
+```cmd
+set DEV_SKIP_STRIPE_SIG=1 && python app.py
+```
+
+Como funciona:
+- `DEV_SKIP_STRIPE_SIG=1` instrui o handler do webhook a ignorar a verificação de assinatura do Stripe (apenas dentro do processo em execução).
+- O valor deve estar presente na sessão que inicia `app.py`; reinicie o processo sempre que alterar o `.env`.
+
+Riscos e boas práticas:
+- Nunca coloque `DEV_SKIP_STRIPE_SIG=1` no `.env` de produção.
+- Proteja o ficheiro `.env` com permissões adequadas e não o comite.
+- Antes de colocar o sistema em produção, defina `DEV_SKIP_STRIPE_SIG=0` ou remova a chave e adicione o `STRIPE_WEBHOOK_SECRET` real.
+
+Reverter para modo seguro (produção):
+
+```powershell
+# Parar o processo e reiniciar sem a variável
+Stop-Process -Name python -Force
+python app.py
+```
+
+Validação final com Stripe (recomendado):
+- Configure `STRIPE_WEBHOOK_SECRET` no `.env` do servidor.
+- Teste usando o `stripe` CLI ou criando um `checkout.session.completed` no painel do Stripe em modo Test.
+
+Arquivo de referência de testes: consulte [docs/stripe_bypass.md](docs/stripe_bypass.md) para exemplos e automações pequenas.
