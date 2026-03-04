@@ -537,6 +537,32 @@ def health_check():
     }
 
 
+def _free_port(port: int):
+    """Mata qualquer processo que esteja ocupando a porta informada."""
+    import subprocess, signal
+    try:
+        result = subprocess.run(
+            ["netstat", "-ano"],
+            capture_output=True, text=True
+        )
+        for line in result.stdout.splitlines():
+            if f":{port} " in line and "LISTENING" in line:
+                parts = line.strip().rsplit(None, 1)
+                if parts:
+                    pid = int(parts[-1])
+                    if pid > 0:
+                        try:
+                            os.kill(pid, signal.SIGTERM)
+                            logger.info(f"Processo antigo (PID {pid}) na porta {port} encerrado.")
+                            import time; time.sleep(1)
+                        except Exception as e:
+                            logger.warning(f"Não foi possível matar PID {pid}: {e}")
+    except Exception as e:
+        logger.warning(f"_free_port: {e}")
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    _free_port(port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
