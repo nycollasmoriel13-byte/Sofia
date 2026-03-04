@@ -9,7 +9,7 @@ Write-Host "  SOFIA — Iniciando servicos..." -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 # ── 1. Matar processos antigos nas portas 8000 e 8501 ─────────────────────────
-foreach ($port in @(8000, 8501)) {
+foreach ($port in @(9000, 9501)) {
     $connections = netstat -ano | Select-String ":$port\s" | Select-String "LISTENING"
     foreach ($line in $connections) {
         if ($line -match '\s(\d+)$') {
@@ -26,7 +26,7 @@ foreach ($port in @(8000, 8501)) {
 Write-Host ""
 
 # ── 2. Iniciar Sofia (main.py) ─────────────────────────────────────────────────
-Write-Host "  [>>] Iniciando Sofia (porta 8000)..." -ForegroundColor Green
+Write-Host "  [>>] Iniciando Sofia (porta 9000)..." -ForegroundColor Green
 $sofia = Start-Process -FilePath "$root\.venv\Scripts\python.exe" `
     -ArgumentList "$root\main.py" `
     -WorkingDirectory $root `
@@ -36,10 +36,10 @@ Write-Host "  [OK] Sofia iniciada — PID $($sofia.Id)" -ForegroundColor Green
 Start-Sleep -Seconds 3
 
 # ── 3. Iniciar Dashboard Streamlit (porta 8501) ────────────────────────────────
-Write-Host "  [>>] Iniciando Dashboard (porta 8501)..." -ForegroundColor Green
+Write-Host "  [>>] Iniciando Dashboard (porta 9501)..." -ForegroundColor Green
 $dashboard = Start-Process -FilePath "$root\.venv\Scripts\python.exe" `
     -ArgumentList "-m", "streamlit", "run", "$root\dashboard.py", `
-                  "--server.port", "8501", "--server.headless", "true" `
+                  "--server.port", "9501", "--server.headless", "true" `
     -WorkingDirectory $root `
     -PassThru -WindowStyle Normal
 Write-Host "  [OK] Dashboard iniciado — PID $($dashboard.Id)" -ForegroundColor Green
@@ -47,6 +47,6 @@ Write-Host "  [OK] Dashboard iniciado — PID $($dashboard.Id)" -ForegroundColor
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  PRONTO!" -ForegroundColor Cyan
-Write-Host "  Sofia:     http://localhost:8000" -ForegroundColor White
-Write-Host "  Dashboard: http://localhost:8501" -ForegroundColor White
+  Write-Host "  Sofia:     http://localhost:9000" -ForegroundColor White
+  Write-Host "  Dashboard: http://localhost:9501" -ForegroundColor White
 Write-Host "========================================" -ForegroundColor Cyan
